@@ -5,4 +5,4 @@ WINDOW_HEIGHT = 80 * TILE_SIZE
 
 PLAYER_GRAVITY = 0.5
 
-SPRITES_PATH = "Assets/images"
+SPRITES_PATH = "Assets/images/"

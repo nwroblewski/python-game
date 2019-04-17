@@ -23,7 +23,7 @@ class Player(object):
         self.moving_left = False
         self.jump_count = 8
         self.walk_count = 0
-
+        self.face = 1 # -1 for left, 1 for right
         self.char = pygame.image.load(settings.SPRITES_PATH + 'standing.png')
 
         self.walk_right = [pygame.image.load(settings.SPRITES_PATH + 'R1.png'),
@@ -53,12 +53,15 @@ class Player(object):
         if player.moving_left:
             game_window.blit(self.walk_left[self.walk_count // 3], (self.x, self.y))
             self.walk_count += 1
-
+            self.face = -1
         elif player.moving_right:
             game_window.blit(self.walk_right[self.walk_count // 3], (self.x, self.y))
             self.walk_count += 1
+            self.face = 1
+        elif self.face == 1:
+            game_window.blit(self.walk_right[0], (self.x, self.y))
         else:
-            game_window.blit(self.char, (self.x, self.y))
+            game_window.blit(self.walk_left[0], (self.x, self.y))
 
     def jump(self):
 
@@ -72,6 +75,9 @@ class Player(object):
         else:
             self.jumping = False
             self.jump_count = 8
+
+    def shoot(self, game_window):
+        pass
 
     def move(self):
         pass
@@ -106,11 +112,13 @@ while running:
     if player.jumping:
         player.jump()
     else:
-        if keys[pygame.K_SPACE]:
+        if keys[pygame.K_UP]:
             player.jumping = True
 
         if keys[pygame.K_DOWN] and y < window_height - player.height - player.speed:
             player.y += player.speed
+
+    # if keys[pygame.K_SPACE]:
 
     if keys[pygame.K_RIGHT] and player.x < window_width - player.width - player.speed:
         player.x += player.speed
