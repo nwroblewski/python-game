@@ -3,12 +3,13 @@ from Assets import settings
 #from Engine.LevelGenerator import LevelGenerator
 import pygame
 from pygame import *
+import pygameMenu                # This imports classes and other things
+from pygameMenu.locals import *  # Import constants (like actions)
+
+window = pygame.display.set_mode((settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT))
 
 def main():
-    pygame.init()
     #bg = pygame.image.load(settings.SPRITES_PATH + 'bg.jpg')
-    window = pygame.display.set_mode((settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT))
-    pygame.display.set_caption("Gameee")
     clock = pygame.time.Clock()
 
     platforms = pygame.sprite.Group()
@@ -208,5 +209,26 @@ class Platform(Entity):
     def __init__(self, image, pos, *groups, width = settings.TILE_SIZE, height = settings.TILE_SIZE):
         super().__init__(image, width, height, pos, *groups)
 
+def main_background():
+    window.blit(bg, (0,0))
+
 if __name__ == "__main__":
-    main()
+    pygame.init()
+    pygame.display.set_caption("Fortnite")
+    bg = pygame.image.load(settings.SPRITES_PATH + "bg.jpg")
+    bg = pygame.transform.scale(bg, (settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT))
+    main_menu = pygameMenu.Menu(window, settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT, pygameMenu.fonts.FONT_8BIT, "Fortnite", bgfun=main_background, menu_alpha=20) # -> Menu object
+    main_menu.add_option("Start the game", main)
+    main_menu.add_option("Host coop", main)
+    main_menu.add_option("Join coop", main)
+    main_menu.add_option("Exit", PYGAME_MENU_EXIT)
+    clock = pygame.time.Clock()
+
+    while True:
+        clock.tick(settings.FPS)
+        events = pygame.event.get()
+        for event in events:
+            if event.type == QUIT:
+                exit()
+
+        main_menu.mainloop(events)
