@@ -3,7 +3,7 @@ from src.Entities.entity import Entity
 from src.Assets import settings
 from pygame import *
 from src.Engine.Projectile import Projectile
-
+from src.Entities.platform import NextLevelPlatform
 
 class Player(Entity):
     def __init__(self, platforms, pos, *groups):
@@ -108,8 +108,9 @@ class Player(Entity):
     def collide(self, xvel, yvel, platforms):
         for p in platforms:
             if pygame.sprite.collide_rect(self, p):
-                # if isinstance(p, ExitBlock):                       # CHECKPOINT?
-                #    pygame.event.post(pygame.event.Event(QUIT))
+                if isinstance(p, NextLevelPlatform):
+                    # idk, send help
+                    levelGenerator.load(2)
                 if xvel > 0:
                     self.rect.right = p.rect.left
                 if xvel < 0:
