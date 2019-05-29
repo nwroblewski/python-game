@@ -4,13 +4,12 @@ from src.Entities.Player import Player
 from src.Engine.CameraLayeredUpdates import CameraLayeredUpdates
 import pygameMenu
 import pygame
-from pygameMenu.locals import *  # Import constants (like actions)
+from pygameMenu.locals import *
 from pygame import *
 from src.World.LevelGenerator import LevelGenerator
 
-
-def main():
-    LevelGenerator(platforms, game.entities, 1)
+def main(levelGenerator):
+    levelGenerator.load(1)
     game.run(window)
 
 
@@ -24,6 +23,7 @@ if __name__ == "__main__":
     platforms = pygame.sprite.Group()
     player = Player(platforms, (2*settings.TILE_SIZE, settings.WINDOW_HEIGHT - settings.TILE_SIZE))
     entities = CameraLayeredUpdates(player, pygame.Rect(0, 0, settings.LEVEL_WIDTH, settings.LEVEL_HEIGHT))
+    levelGenerator = LevelGenerator(platforms, entities)
 
     window = pygame.display.set_mode((settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT))
 
@@ -33,10 +33,9 @@ if __name__ == "__main__":
     game = Game(player, entities, bg)
 
     main_menu = pygameMenu.Menu(window, settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT, pygameMenu.fonts.FONT_8BIT,
-                                "Fortnite", bgfun=main_background, menu_alpha=20)  # -> Menu object
-    main_menu.add_option("Start the game", main)
-    main_menu.add_option("Host coop", main)
-    main_menu.add_option("Join coop", main)
+                                "Fortnite", bgfun=main_background, menu_alpha=20)
+    main_menu.add_option("Single player", main, levelGenerator)
+    main_menu.add_option("Join server", main, levelGenerator)
     main_menu.add_option("Exit", PYGAME_MENU_EXIT)
 
     while True:
