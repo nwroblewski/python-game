@@ -18,52 +18,50 @@ class Player(Entity):
         # self.char = pygame.image.load(settings.SPRITES_PATH + 'standing.png')
 
     def init_images(self):
-        self.char = pygame.image.load(settings.SPRITES_PATH + 'standing.png')
-        self.walk_right = [pygame.image.load(settings.SPRITES_PATH + 'R1.png'),
-                           pygame.image.load(settings.SPRITES_PATH + 'R2.png'),
-                           pygame.image.load(settings.SPRITES_PATH + 'R3.png'),
-                           pygame.image.load(settings.SPRITES_PATH + 'R4.png'),
-                           pygame.image.load(settings.SPRITES_PATH + 'R5.png'),
-                           pygame.image.load(settings.SPRITES_PATH + 'R6.png'),
-                           pygame.image.load(settings.SPRITES_PATH + 'R7.png'),
-                           pygame.image.load(settings.SPRITES_PATH + 'R8.png'),
-                           pygame.image.load(settings.SPRITES_PATH + 'R9.png')]
-        self.walk_left = [pygame.image.load(settings.SPRITES_PATH + 'L1.png'),
-                          pygame.image.load(settings.SPRITES_PATH + 'L2.png'),
-                          pygame.image.load(settings.SPRITES_PATH + 'L3.png'),
-                          pygame.image.load(settings.SPRITES_PATH + 'L4.png'),
-                          pygame.image.load(settings.SPRITES_PATH + 'L5.png'),
-                          pygame.image.load(settings.SPRITES_PATH + 'L6.png'),
-                          pygame.image.load(settings.SPRITES_PATH + 'L7.png'),
-                          pygame.image.load(settings.SPRITES_PATH + 'L8.png'),
-                          pygame.image.load(settings.SPRITES_PATH + 'L9.png')]
+        self.char = pygame.image.load(settings.SPRITES_PATH + 'char2/right_1.png')
+        self.char_left = pygame.image.load(settings.SPRITES_PATH + 'char2/left_1.png')
+        self.char_right = pygame.image.load(settings.SPRITES_PATH + 'char2/right_1.png')
+        self.walk_right = [pygame.image.load(settings.SPRITES_PATH + 'char2/right_1.png'),
+                           pygame.image.load(settings.SPRITES_PATH + 'char2/right_2.png'),
+                           pygame.image.load(settings.SPRITES_PATH + 'char2/right_3.png'),
+                           pygame.image.load(settings.SPRITES_PATH + 'char2/right_4.png'),
+                           pygame.image.load(settings.SPRITES_PATH + 'char2/right_5.png'),
+                           pygame.image.load(settings.SPRITES_PATH + 'char2/right_6.png'),
+                           # pygame.image.load(settings.SPRITES_PATH + 'R7.png'),
+                           # pygame.image.load(settings.SPRITES_PATH + 'R8.png'),
+                           # pygame.image.load(settings.SPRITES_PATH + 'R9.png')]
+        ]
+        self.walk_left = [pygame.image.load(settings.SPRITES_PATH + 'char2/left_1.png'),
+                          pygame.image.load(settings.SPRITES_PATH + 'char2/left_2.png'),
+                          pygame.image.load(settings.SPRITES_PATH + 'char2/left_3.png'),
+                          pygame.image.load(settings.SPRITES_PATH + 'char2/left_4.png'),
+                          pygame.image.load(settings.SPRITES_PATH + 'char2/left_5.png'),
+                          pygame.image.load(settings.SPRITES_PATH + 'char2/left_6.png'),
+                          # pygame.image.load(settings.SPRITES_PATH + 'L7.png'),
+                          # pygame.image.load(settings.SPRITES_PATH + 'L8.png'),
+                          # pygame.image.load(settings.SPRITES_PATH + 'L9.png')]
+        ]
 
         for ind, val in enumerate(self.walk_right):
             rect = val.get_rect()
-            if not (rect.width == settings.PLAYER_WIDTH and rect.height == settings.PLAYER_HEIGHT):
-                self.walk_right[ind] = pygame.transform.scale(self.walk_right[ind],
-                                                              (settings.PLAYER_WIDTH, settings.PLAYER_HEIGHT))
 
         for ind, val in enumerate(self.walk_left):
             rect = val.get_rect()
-            if not (rect.width == settings.PLAYER_WIDTH and rect.height == settings.PLAYER_HEIGHT):
-                self.walk_left[ind] = pygame.transform.scale(self.walk_left[ind],
-                                                             (settings.PLAYER_WIDTH, settings.PLAYER_HEIGHT))
 
         rect = self.char.get_rect()
-        if not (rect.width == settings.PLAYER_WIDTH and rect.height == settings.PLAYER_HEIGHT):
-            self.char = pygame.transform.scale(self.char, (settings.PLAYER_WIDTH, settings.PLAYER_HEIGHT))
 
     def anim(self, direction):
-        self.walk_count = self.walk_count % 27
+        self.walk_count = self.walk_count % 18
         if direction == "left":
             self.image = self.walk_left[self.walk_count // 3]
             self.walk_count += 1
         elif direction == "right":
             self.image = self.walk_right[self.walk_count // 3]
             self.walk_count += 1
-        elif direction == "stand":
-            self.image = self.char
+        elif direction == "last_left":
+            self.image = self.char_left
+        elif direction == "last_right":
+            self.image = self.char_right
 
     def update(self):
         pressed = pygame.key.get_pressed()
@@ -71,23 +69,25 @@ class Player(Entity):
         left = pressed[K_LEFT]
         right = pressed[K_RIGHT]
         space = pressed[K_SPACE]
-
+        last = "last_left"
         if space or up:
             if self.onGround:
                 self.vel.y = -self.jump_strength
         if left:
             self.vel.x = -self.speed
             self.anim("left")
+            last = "last_left"
         if right:
             self.vel.x = self.speed
             self.anim("right")
+            last = "last_right"
         if not self.onGround:
             self.vel.y += settings.PLAYER_GRAVITY
             if self.vel.y > settings.MAX_FALLING_SPEED: self.vel.y = settings.MAX_FALLING_SPEED
             # print('Predkosc vel.y: ' + str(self.vel.y))
         if not (left or right):
             self.vel.x = 0
-            self.anim("stand")
+            self.anim(last)
         self.rect.left += self.vel.x
         self.collide(self.vel.x, 0, self.platforms)
         self.rect.top += self.vel.y
