@@ -109,3 +109,6 @@ class Player(Entity):
                     self.yvel = 0
                 if yvel < 0:
                     self.rect.top = p.rect.bottom
+
+    def attack(self):
+        pass
