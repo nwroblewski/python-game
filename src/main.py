@@ -7,7 +7,7 @@ import pygame
 from pygameMenu.locals import *
 from pygame import *
 from src.World.LevelGenerator import LevelGenerator
-from src.World.CollisionDetector import CollisionDetector
+from src.Engine.CollisionDetector import CollisionDetector
 
 def main(levelGenerator):
     levelGenerator.load(1)
