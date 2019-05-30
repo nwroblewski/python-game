@@ -7,9 +7,11 @@ import pygame
 from pygameMenu.locals import *
 from pygame import *
 from src.World.LevelGenerator import LevelGenerator
+from src.World.CollisionDetector import CollisionDetector
 
 def main(levelGenerator):
     levelGenerator.load(1)
+    player.rect = player.image.get_rect(topleft=settings.STARTING_POS)
     game.run(window)
 
 
@@ -21,7 +23,7 @@ if __name__ == "__main__":
     pygame.init()
     pygame.display.set_caption("Fortnite")
     platforms = pygame.sprite.Group()
-    player = Player(platforms, (2*settings.TILE_SIZE, settings.WINDOW_HEIGHT - settings.TILE_SIZE))
+    player = Player(platforms, (settings.TILE_SIZE, settings.WINDOW_HEIGHT - settings.TILE_SIZE))
     entities = CameraLayeredUpdates(player, pygame.Rect(0, 0, settings.LEVEL_WIDTH, settings.LEVEL_HEIGHT))
     levelGenerator = LevelGenerator(platforms, entities)
 
@@ -30,7 +32,8 @@ if __name__ == "__main__":
     bg = pygame.image.load(settings.SPRITES_PATH + "bg.jpg")
     bg = pygame.transform.scale(bg, (settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT))
 
-    game = Game(player, entities, bg)
+    collisionDetector = CollisionDetector(platforms, entities, levelGenerator)
+    game = Game(player, entities, collisionDetector, bg)
 
     main_menu = pygameMenu.Menu(window, settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT, pygameMenu.fonts.FONT_8BIT,
                                 "Fortnite", bgfun=main_background, menu_alpha=20)
