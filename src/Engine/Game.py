@@ -5,11 +5,12 @@ from pygame import *
 
 
 class Game:
-    def __init__(self, player, entities, bg):
+    def __init__(self, player, entities, collisionDetector, bg):
         self.clock = pygame.time.Clock()
         self.player = player
         self.entities = entities
         self.bg = bg
+        self.collisionDetector = collisionDetector
 
     def new_game(self):
         pass
@@ -23,11 +24,13 @@ class Game:
                     return
             self.entities.update()
             self.player.update_relative_position(self.player.rect.right + self.entities.cam.x)
+            self.collisionDetector.update(self.player)
             window.blit(self.bg, (0, 0))
             self.update_projectiles(window)
             self.entities.draw(window)
             pygame.display.update()
             self.clock.tick(settings.FPS)
+            print(str(self.player.rect) + ' ' + str(self.player.vel))
 
     def update_projectiles(self, window):
         for projectile in self.player.projectiles:
@@ -35,11 +38,3 @@ class Game:
                 self.player.projectiles.pop(self.player.projectiles.index(projectile))
             projectile.draw(window)
             projectile.update()
-
-
-
-
-
-
-
-
