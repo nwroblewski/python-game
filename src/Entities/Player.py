@@ -99,28 +99,6 @@ class Player(Entity):
         if not (left or right):
             self.vel.x = 0
             self.anim(self.direction)
-        self.rect.left += self.vel.x
-        self.collide(self.vel.x, 0, self.platforms)
-        self.rect.top += self.vel.y
-        self.onGround = False
-        self.collide(0, self.vel.y, self.platforms)
-
-    def collide(self, xvel, yvel, platforms):
-        for p in platforms:
-            if pygame.sprite.collide_rect(self, p):
-                if isinstance(p, NextLevelPlatform):
-                    # idk, send help
-                    levelGenerator.load(2)
-                if xvel > 0:
-                    self.rect.right = p.rect.left
-                if xvel < 0:
-                    self.rect.left = p.rect.right
-                if yvel > 0:
-                    self.rect.bottom = p.rect.top
-                    self.onGround = True
-                    self.yvel = 0
-                if yvel < 0:
-                    self.rect.top = p.rect.bottom
 
     def update_relative_position(self, x):
         self.win_x = x
