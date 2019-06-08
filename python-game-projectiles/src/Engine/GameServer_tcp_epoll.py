@@ -64,14 +64,12 @@ class GameServer(object):
         print("Unexpected: {0}".format(msg))
 
   def run(self):
+    EOL = b'\n'
+    epoll = select.epoll()
+    epoll.register(self.serversocket.fileno(), select.EPOLLIN)
+    print("Waiting...")
     try:
-      while True:
-          try:
-            conn, addr = self.serversocket.accept()
-          except BlockingIOError:
-            print("Waiting for connection")
-            continue
-          break
+      connections = {}; requests = {}; responses = {}
       while True:
         for e in pygame.event.get():
                 if e.type == pygame.locals.QUIT:
@@ -79,8 +77,36 @@ class GameServer(object):
                 if e.type == pygame.locals.KEYDOWN and e.key == pygame.locals.K_ESCAPE:
                     return
 
-        msg = conn.recv(32)
-        self.parse_msg(msg, addr)
+        events = epoll.poll(0)
+        for fileno, event in events:
+            if fileno == self.serversocket.fileno():
+              print("fileno == socket.fileno")
+              connection, address = self.serversocket.accept()
+              connection.setblocking(0)
+              epoll.register(connection.fileno(), select.EPOLLIN)
+              connections[connection.fileno()] = connection
+              requests[connection.fileno()] = b''
+              responses[connection.fileno()] = b''
+            elif event & select.EPOLLIN:
+              print("Epollin")
+              requests[fileno] += connections[fileno].recv(32)
+              if EOL in requests[fileno]:
+                 epoll.modify(fileno, select.EPOLLOUT)
+                 print('-'*40 + '\n' + requests[fileno].decode()[:-2])
+                 self.parse_msg(requests[fileno].decode()[:-2], fileno)
+            elif event & select.EPOLLOUT:
+              print("Epollout")
+              byteswritten = connections[fileno].send(responses[fileno])
+              responses[fileno] = responses[fileno][byteswritten:]
+              #if len(responses[fileno]) == 0:
+              #   epoll.modify(fileno, 0)
+              #   connections[fileno].shutdown(socket.SHUT_RDWR)
+            elif event & select.EPOLLHUP:
+              print("Epollhup")
+              epoll.unregister(fileno)
+              connections[fileno].close()
+              del connections[fileno]
+
         self.entities.update()
         for player in self.players.values():
           player.update_relative_position(player.rect.right + self.entities.cam.x)
@@ -89,9 +115,11 @@ class GameServer(object):
           send = []
           #for pos in self.players:
           send.append("{0},{1}".format(player.rect.left, player.rect.top))
-          conn.sendto('|'.join(send).encode(), addr)
+          self.serversocket.sendto('|'.join(send).encode(), addr)
     except KeyboardInterrupt as e:
       pass
     finally:
+      epoll.unregister(self.serversocket.fileno())
+      epoll.close()
       self.serversocket.close()
       print("Server closed")

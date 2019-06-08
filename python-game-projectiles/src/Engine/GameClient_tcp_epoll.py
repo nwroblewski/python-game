@@ -52,20 +52,46 @@ class GameClient():
   def run(self):
     running = True
     clock = pygame.time.Clock()    
-
+    EOL = b'\n'
+    epoll = select.epoll()
+    epoll.register(self.sock.fileno(), select.EPOLLIN)
     print("Waiting...")
     try:
       # Initialize connection to server
       self.sock.send(b'c\n')
+      connections = {}; requests = {}; responses = {}
       while running:
         clock.tick(settings.FPS)
-        while True:
-          try:
-            msg = self.sock.recv(32)
-          except BlockingIOError:
-            continue
-          break
-        self.parse_msg(msg)
+
+        events = epoll.poll(0)
+        for fileno, event in events:
+            if fileno == self.sock.fileno():
+              print("Fileno == sock.fileno")
+              connection, address = self.sock.accept()
+              connection.setblocking(0)
+              epoll.register(connection.fileno(), select.EPOLLIN)
+              connections[connection.fileno()] = connection
+              requests[connection.fileno()] = b''
+              responses[connection.fileno()] = b''
+            elif event & select.EPOLLIN:
+              print("Epollin")
+              requests[fileno] += connections[fileno].recv(32)
+              if EOL in requests[fileno]:
+                 epoll.modify(fileno, select.EPOLLOUT)
+                 print('-'*40 + '\n' + requests[fileno].decode()[:-2])
+                 self.parse_msg(requests[fileno].decode()[:-2])
+            elif event & select.EPOLLOUT:
+              print("Epollout")
+              byteswritten = connections[fileno].send(responses[fileno])
+              responses[fileno] = responses[fileno][byteswritten:]
+              if len(responses[fileno]) == 0:
+                 epoll.modify(fileno, 0)
+                 connections[fileno].shutdown(socket.SHUT_RDWR)
+            elif event & select.EPOLLHUP:
+              print("Epollhup")
+              epoll.unregister(fileno)
+              connections[fileno].close()
+              del connections[fileno]
 
         self.players[0].update_relative_position(self.players[0].rect.right + self.entities.cam.x)
         self.screen.blit(self.bg, (0,0))
@@ -88,5 +114,7 @@ class GameClient():
             pygame.event.clear(pygame.locals.KEYDOWN)
     finally:
       self.sock.send(b'd\n')
+      epoll.unregister(self.sock.fileno())
+      epoll.close()
       self.sock.close()
-      print("Socket closed")
+      print("Epoll unregistered, Socket closed")
