@@ -62,6 +62,7 @@ class Client():
 
   def decode_positions(self, data):
     players_list = data.split('|')[0:-1]
+
     for player in players_list:
       player_data = player.split('+')
       player_id = player_data[0]
