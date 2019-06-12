@@ -51,4 +51,4 @@ class Game:
         for id, pos in self.players.items():
             print(f"{id} : {pos}")
             if(self.client.id != id):
-                self.window.blit(self.player.image, pos)
+                self.window.blit(self.player.image, (pos[0] + self.entities.cam.x, pos[1]))
