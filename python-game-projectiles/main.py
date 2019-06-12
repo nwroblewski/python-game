@@ -8,26 +8,24 @@ from pygameMenu.locals import *
 from pygame import *
 from src.World.LevelGenerator import LevelGenerator
 from src.Engine.CollisionDetector import CollisionDetector
-from src.Engine.GameServer import GameServer
-from src.Engine.GameClient import GameClient
+from src.Engine.Server import Server
 
 def start_single(levelGenerator):
     if 'game' not in globals():
         levelGenerator.load(1)
-        game = Game(entities, collisionDetector, bg)
-        game.add_player(player)
-    game.run(window)
+        game = Game(player, entities, collisionDetector, bg, window)
+    game.run()
 
 def start_multi():
     if 'game' not in globals():
         levelGenerator.load(1)
-        game = GameClient()
-        #game.add_player(player)
+        game = Game(player, entities, collisionDetector, bg, window)
+        game.start_communication()
     game.run()
 
 def start_server():
     if 'server' not in globals():
-        server = GameServer(entities, collisionDetector)
+        server = Server(entities, collisionDetector)
     server.run()
 
 def multi_menu():
