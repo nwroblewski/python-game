@@ -2,96 +2,132 @@ import socket
 import select
 import sys
 from src.Assets import settings
-from src.Entities.Player import Player
 import pygame
 import pygame.locals
+from threading import Lock, Thread, active_count
 
-# Messages:
-#  Client->Server
-#   One or two characters. First character is the command:
-#     c: connect
-#     u: update position
-#     d: disconnect
-#   Second character only applies to position and specifies direction (udlr)
-#
-#  Server->Client
-#   '|' delimited pairs of positions to draw the players (there is no
-#     distinction between the players - not even the client knows where its
-#     player is.
+global running
 
 class GameServer(object):
-  def __init__(self, entities, collisionDetector, port=8080, max_num_players=5):
-    self.serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    self.serversocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    self.serversocket.bind(('127.0.0.1', port))
-    self.serversocket.listen(1)
-    self.serversocket.setblocking(0)
-    self.serversocket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+  def __init__(self, entities, collisionDetector, address = '127.0.0.1', tcp_port=8080, udp_port=9090):
+    self.lock = Lock()
+    self.init_tcp_server(address, tcp_port)
+    self.init_udp_server(address, udp_port)
     self.players = {}
-    self.entities = entities
-    self.collisionDetector = collisionDetector
     
-  def do_movement(self, mv, player):
-    print(f"Server got message from player {player} to move: {mv}")
-    p = self.players[player]
+  def init_tcp_server(self, address, port):
+    self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    self.tcp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    self.tcp_socket.bind((address, port))
+    self.tcp_socket.listen(1)
+    #self.tcp_socket.setblocking(0)
+    self.tcp_socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
-    if mv == 'u':
-      p.vel.y = -p.speed
-    elif mv == 'l':
-      p.vel.x = -p.speed
-    elif mv == 'r':
-      p.vel.x = p.speed
+  def init_udp_server(self, address, port):
+    self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    self.udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    self.udp_socket.bind((address, port))
+
+  def run(self):
+    running = True
+    tcp_thread = Thread(target=self.run_tcp)
+    udp_thread = Thread(target=self.run_udp)
+    tcp_thread.start()
+    udp_thread.start()
+    print(f"{active_count()} threads are running")
+
+    while True:
+      for e in pygame.event.get():
+        if e.type == pygame.locals.QUIT or (e.type == pygame.locals.KEYDOWN and e.key == pygame.locals.K_ESCAPE):
+          running = False
+          return
+
+  def register_player(self, fileno):
+    print(f"Registering player {fileno}")
+    self.players[fileno] = settings.STARTING_POS
     
-  def parse_msg(self, msg, addr):
+  def unregister_player(self, fileno):
+    del self.players[fileno]
+    print(f"Player {fileno} disconnected")
+
+  def update_position(self, addr, pos):
+    #print("Updating position")
+    self.lock.acquire()
+    self.players[addr] = pos
+    self.lock.release()
+
+  def parse_msg(self, msg, fileno):
+    #print(f"Whole msg: {msg} from player {fileno}")
+    msg = msg.split('|')[-2]
     if len(msg) >= 1:
-      cmd = chr(msg[0])
-      if cmd == 'c':  # New Connection
-        self.players[addr] = Player((settings.TILE_SIZE, settings.WINDOW_HEIGHT - settings.TILE_SIZE))
-        self.collisionDetector.add_player(self.players[addr])
-        #if len(self.players) > 1:
-        # self.entities.add(self.players[addr])
-        print(f"New connection from fileno: {addr}")
-      elif cmd == 'u':  # Movement Update
-        if len(msg) >= 2 and addr in self.players:
-          # Second char of message is direction (udlr)
-          self.do_movement(chr(msg[1]), addr)
+      cmd = msg[0]
+      if cmd == 'u':  # Position Update
+        if len(msg) >= 2 and fileno in self.players.keys():
+          pos = msg[1:].split(',')
+          self.update_position(fileno, pos)
       elif cmd == 'd':  # Player Quitting
-        if addr in self.players:
-          self.collisionDetector.del_player(self.players[addr])
-          del self.players[addr]
-          print(f"Player with adress: {addr} disconnected")
+        if fileno in self.players.keys():
+          self.unregister_player(fileno)
       else:
         print("Unexpected: {0}".format(msg))
 
-  def run(self):
+  def run_tcp(self):
+    epoll = select.epoll()
+    epoll.register(self.tcp_socket.fileno(), select.EPOLLIN)
     try:
-      while True:
-          try:
-            conn, addr = self.serversocket.accept()
-          except BlockingIOError:
-            print("Waiting for connection")
-            continue
-          break
-      while True:
-        for e in pygame.event.get():
-                if e.type == pygame.locals.QUIT:
-                    return
-                if e.type == pygame.locals.KEYDOWN and e.key == pygame.locals.K_ESCAPE:
-                    return
+      connections = {}
+      while True:#running:
+        events = epoll.poll()
+        for fileno, event in events:
+            if fileno == self.tcp_socket.fileno():
+              print("fileno == socket.fileno")
+              connection, address = self.tcp_socket.accept()
+              #connection.setblocking(0)
+              epoll.register(connection.fileno(), select.EPOLLIN)
+              connections[connection.fileno()] = connection
+              self.register_player(connection.fileno())
+            elif event & select.EPOLLIN:
+              msg = connections[fileno].recv(32)
+              self.parse_msg(msg.decode(), fileno)
+            elif event & select.EPOLLHUP:
+              epoll.unregister(fileno)
+              connections[fileno].close()
+              del connections[fileno]
+        self.lock.acquire()
+        for addr, pos in self.players.items():
+          print(f"Player {addr} pos: {pos}")
+        self.lock.release()
 
-        msg = conn.recv(32)
-        self.parse_msg(msg, addr)
-        self.entities.update()
-        for player in self.players.values():
-          player.update_relative_position(player.rect.right + self.entities.cam.x)
-        self.collisionDetector.update()
-        for addr, player in self.players.items():
-          send = []
-          #for pos in self.players:
-          send.append("{0},{1}".format(player.rect.left, player.rect.top))
-          conn.sendto('|'.join(send).encode(), addr)
-    except KeyboardInterrupt as e:
-      pass
     finally:
-      self.serversocket.close()
-      print("Server closed")
+      epoll.unregister(self.tcp_socket.fileno())
+      epoll.close()
+      self.tcp_socket.shutdown(socket.SHUT_RDWR)
+      self.tcp_socket.close()
+      print("TCP server closed")
+
+  def encode_positions(self):
+    result = ""
+    self.lock.acquire()
+    for fileno, pos in self.players.items():
+      result += f"{fileno}+{pos[0]},{pos[1]}|"
+    self.lock.release()
+    return result.encode()
+
+  def run_udp(self):
+    epoll = select.epoll()
+    epoll.register(self.udp_socket.fileno(), select.EPOLLOUT)
+    try:
+      while True:#running:
+        events = epoll.poll()
+        for fileno, event in events:
+            if event & select.EPOLLOUT:
+              response = self.encode_positions()
+              self.udp_socket.sendto(response, address) # skad ten adres wziac? moze jakos inaczej to zrobic?
+            elif event & select.EPOLLHUP:
+              epoll.unregister(fileno)
+
+    finally:
+      epoll.unregister(self.udp_socket.fileno())
+      epoll.close()
+      self.udp_socket.close()
+      print("UDP server closed")
