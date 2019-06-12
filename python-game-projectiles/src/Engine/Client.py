@@ -14,13 +14,13 @@ def get_constants(prefix):
                  if n.startswith(prefix)
                  )
 
-global running
+#global running
 
-class GameClient():
-  def __init__(self, addr="127.0.0.1", tcp_port=8080, udp_port=9090):
+class Client():
+  def __init__(self, player, players, addr="127.0.0.1", tcp_port=8080, udp_port=9090):
     self.lock = Lock()
-    self.my_pos = settings.STARTING_POS
-    self.players = {}
+    self.me = player
+    self.players = players
     self.init_tcp_server(addr, tcp_port)
     self.init_udp_server(addr, udp_port)
 
@@ -29,6 +29,8 @@ class GameClient():
     types = get_constants('SOCK_')
     protocols = get_constants('IPPROTO_')
     self.tcp_sock = socket.create_connection((address, port))
+    self.id = self.tcp_sock.recv(4).decode()
+    print("My player ID: " + self.id)
     #self.tcp_sock.setblocking(0)
     print ('Family  :', families[self.tcp_sock.family])
     print ('Type    :', types[self.tcp_sock.type])
@@ -40,7 +42,7 @@ class GameClient():
     self.udp_socket.bind((address, port))
 
   def run(self):
-    running = True
+    #running = True
     tcp_thread = Thread(target=self.run_tcp)
     udp_thread = Thread(target=self.run_udp)
     tcp_thread.start()
@@ -50,7 +52,8 @@ class GameClient():
   def run_tcp(self):
     try:
       while True:#running:
-        self.tcp_sock.sendall(f"u{self.my_pos[0]},{self.my_pos[1]}|".encode())
+        self.tcp_sock.sendall(f"u{self.me.rect.x},{self.me.rect.y}|".encode())
+        time.sleep(0.01)
     finally:
       self.tcp_sock.send(b'd|')
       self.tcp_sock.shutdown(socket.SHUT_RDWR)
@@ -63,7 +66,7 @@ class GameClient():
       player_data = player.split('+')
       player_id = player_data[0]
       player_pos = player_data[1].split(',')
-      self.players[player_id] = player_pos
+      self.players[player_id] = tuple([int(x) for x in player_pos])
 
   def run_udp(self):
     epoll = select.epoll()
@@ -78,10 +81,10 @@ class GameClient():
             elif event & select.EPOLLHUP:
               epoll.unregister(fileno)
 
-        self.lock.acquire()
-        for id, pos in self.players.items():
-          print(f"Player {id} pos: {pos}")
-        self.lock.release()
+        #self.lock.acquire()
+        #for id, pos in self.players.items():
+        #  print(f"Player {id} pos: {pos}")
+        #self.lock.release()
 
     finally:
       epoll.unregister(self.udp_socket.fileno())
