@@ -20,11 +20,13 @@ class Game:
         self.client.run()
 
     def run(self):
-        while 1:
+        while True:
             for e in pygame.event.get():
                 if e.type == QUIT:
+                    self.client.tcp_sock.send(b'd|')
                     return
                 if e.type == KEYDOWN and e.key == K_ESCAPE:
+                    self.client.tcp_sock.send(b'd|')
                     return
             self.entities.update()
             self.player.update_relative_position(self.player.rect.right + self.entities.cam.x)
