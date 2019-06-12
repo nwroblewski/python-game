@@ -13,7 +13,7 @@ class Server(object):
     self.lock = Lock()
     self.init_tcp_server(address, tcp_port)
     self.init_udp_server(address, udp_port)
-    self.players = {}
+    self.players = {}   # fileno (player_id) -> pos (2-length tuple)
     
   def init_tcp_server(self, address, port):
     self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -56,20 +56,20 @@ class Server(object):
     self.lock.release()
 
   def parse_msg(self, msg, fileno):
-    msg_list = msg.split('|')
-    if len(msg_list) >= 2:
-      msg = msg_list[-2]
-    if len(msg) >= 1:
-      cmd = msg[0]
-      if cmd == 'u':  # Position Update
-        if len(msg) >= 2 and fileno in self.players.keys():
-          pos = msg[1:].split(',')
-          self.update_position(fileno, pos)
-      elif cmd == 'd':  # Player Quitting
-        if fileno in self.players.keys():
-          self.unregister_player(fileno)
-      else:
-        print("Unexpected: {0}".format(msg))
+    msg_list = msg.split('|')[0:-1]
+
+    for msg in msg_list:
+      if len(msg) >= 1:
+        cmd = msg[0]
+        if cmd == 'u':  # Position Update
+          if len(msg) >= 2 and fileno in self.players.keys():
+            pos = msg[1:].split(',')
+            self.update_position(fileno, pos)
+        elif cmd == 'd':  # Player Quitting
+          if fileno in self.players.keys():
+            self.unregister_player(fileno)
+        else:
+          print("Unexpected: {0}".format(msg))
 
   def run_tcp(self):
     epoll = select.epoll()
@@ -109,8 +109,8 @@ class Server(object):
   def encode_positions(self):
     result = ""
     self.lock.acquire()
-    for fileno, pos in self.players.items():
-      result += f"{fileno}+{pos[0]},{pos[1]}|"
+    for player_id, pos in self.players.items():
+      result += f"{player_id}+{pos[0]},{pos[1]}|"
     self.lock.release()
     return result.encode()
 
