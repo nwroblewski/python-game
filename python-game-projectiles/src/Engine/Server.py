@@ -6,9 +6,9 @@ import pygame
 import pygame.locals
 from threading import Lock, Thread, active_count
 
-global running
+#global running
 
-class GameServer(object):
+class Server(object):
   def __init__(self, entities, collisionDetector, address = '127.0.0.1', tcp_port=8080, udp_port=9090):
     self.lock = Lock()
     self.init_tcp_server(address, tcp_port)
@@ -29,7 +29,7 @@ class GameServer(object):
     self.udp_socket.bind((address, port))
 
   def run(self):
-    running = True
+    #running = True
     tcp_thread = Thread(target=self.run_tcp)
     udp_thread = Thread(target=self.run_udp)
     tcp_thread.start()
@@ -39,7 +39,7 @@ class GameServer(object):
     while True:
       for e in pygame.event.get():
         if e.type == pygame.locals.QUIT or (e.type == pygame.locals.KEYDOWN and e.key == pygame.locals.K_ESCAPE):
-          running = False
+          #running = False
           return
 
   def register_player(self, fileno):
@@ -51,14 +51,14 @@ class GameServer(object):
     print(f"Player {fileno} disconnected")
 
   def update_position(self, addr, pos):
-    #print("Updating position")
     self.lock.acquire()
     self.players[addr] = pos
     self.lock.release()
 
   def parse_msg(self, msg, fileno):
-    #print(f"Whole msg: {msg} from player {fileno}")
-    msg = msg.split('|')[-2]
+    msg_list = msg.split('|')
+    if len(msg_list) >= 2:
+      msg = msg_list[-2]
     if len(msg) >= 1:
       cmd = msg[0]
       if cmd == 'u':  # Position Update
@@ -80,23 +80,24 @@ class GameServer(object):
         events = epoll.poll()
         for fileno, event in events:
             if fileno == self.tcp_socket.fileno():
-              print("fileno == socket.fileno")
               connection, address = self.tcp_socket.accept()
               #connection.setblocking(0)
               epoll.register(connection.fileno(), select.EPOLLIN)
               connections[connection.fileno()] = connection
               self.register_player(connection.fileno())
+              connection.send(str(connection.fileno()).encode())
             elif event & select.EPOLLIN:
               msg = connections[fileno].recv(32)
               self.parse_msg(msg.decode(), fileno)
             elif event & select.EPOLLHUP:
               epoll.unregister(fileno)
               connections[fileno].close()
+              self.unregister_player(fileno)
               del connections[fileno]
-        self.lock.acquire()
-        for addr, pos in self.players.items():
-          print(f"Player {addr} pos: {pos}")
-        self.lock.release()
+        #self.lock.acquire()
+        #for addr, pos in self.players.items():
+        #  print(f"Player {addr} pos: {pos}")
+        #self.lock.release()
 
     finally:
       epoll.unregister(self.tcp_socket.fileno())
