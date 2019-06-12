@@ -122,7 +122,7 @@ class GameServer(object):
         for fileno, event in events:
             if event & select.EPOLLOUT:
               response = self.encode_positions()
-              self.udp_socket.sendto(response, address) # skad ten adres wziac? moze jakos inaczej to zrobic?
+              self.udp_socket.sendto(response, ('127.0.0.1', 9090))
             elif event & select.EPOLLHUP:
               epoll.unregister(fileno)
 
