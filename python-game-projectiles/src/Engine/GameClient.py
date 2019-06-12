@@ -5,6 +5,7 @@ import select
 import random
 import time
 from src.Assets import settings
+from threading import Thread, Lock, active_count
 
 def get_constants(prefix):
     """Create a dictionary mapping socket module constants to their names."""
@@ -13,80 +14,77 @@ def get_constants(prefix):
                  if n.startswith(prefix)
                  )
 
+global running
+
 class GameClient():
-  def __init__(self, entities, window, bg, addr="127.0.0.1", serverport=8080):
+  def __init__(self, addr="127.0.0.1", tcp_port=8080, udp_port=9090):
+    self.lock = Lock()
+    self.my_pos = settings.STARTING_POS
+    self.players = {}
+    self.init_tcp_server(addr, tcp_port)
+    self.init_udp_server(addr, udp_port)
+
+  def init_tcp_server(self, address, port):
     families = get_constants('AF_')
     types = get_constants('SOCK_')
     protocols = get_constants('IPPROTO_')
-    # Create a TCP/IP socket
-    self.sock = socket.create_connection((addr, serverport))
-    self.sock.setblocking(0)
-    print ('Family  :', families[self.sock.family])
-    print ('Type    :', types[self.sock.type])
-    print ('Protocol:', protocols[self.sock.proto])
+    self.tcp_sock = socket.create_connection((address, port))
+    #self.tcp_sock.setblocking(0)
+    print ('Family  :', families[self.tcp_sock.family])
+    print ('Type    :', types[self.tcp_sock.type])
+    print ('Protocol:', protocols[self.tcp_sock.proto])
 
-    self.entities = entities
-    self.screen = window
-    self.setup_pygame()
-    self.players = []
-    self.bg = bg
-
-  def add_player(self, player):
-    self.players.append(player)
-    player.rect = player.image.get_rect(topleft=settings.STARTING_POS)
-  
-  def setup_pygame(self):    
-    pygame.event.set_allowed(None)
-    pygame.event.set_allowed([pygame.locals.QUIT,
-                              pygame.locals.KEYDOWN])
-
-  def parse_msg(self, msg):
-    for position in msg.decode().split('|'):
-        x, sep, y = position.partition(',')
-        print(int(x))
-        print(int(y))
-        #self.entities.update()
-        self.players[0].rect.left = int(x)
-        self.players[0].rect.top = int(y)
+  def init_udp_server(self, address, port):
+    self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    self.udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    self.udp_socket.bind((address, port))
 
   def run(self):
     running = True
-    clock = pygame.time.Clock()    
+    tcp_thread = Thread(target=self.run_tcp)
+    udp_thread = Thread(target=self.run_udp)
+    tcp_thread.start()
+    udp_thread.start()
+    print(f"{active_count()} threads are running")
 
-    print("Waiting...")
+  def run_tcp(self):
     try:
-      # Initialize connection to server
-      self.sock.send(b'c\n')
-      while running:
-        clock.tick(settings.FPS)
-        while True:
-          try:
-            msg = self.sock.recv(32)
-          except BlockingIOError:
-            continue
-          break
-        self.parse_msg(msg)
-
-        self.players[0].update_relative_position(self.players[0].rect.right + self.entities.cam.x)
-        self.screen.blit(self.bg, (0,0))
-        self.entities.draw(self.screen)
-        pygame.display.update()
-
-        for event in pygame.event.get():
-          if event.type == pygame.QUIT or event.type == pygame.locals.QUIT:
-            running = False
-            break
-          elif event.type == pygame.locals.KEYDOWN:
-            if event.key == pygame.locals.K_UP:
-              self.sock.send(b'uu\n')
-            elif event.key == pygame.locals.K_LEFT:
-              self.sock.send(b'ul\n')
-            elif event.key == pygame.locals.K_RIGHT:
-              self.sock.send(b'ur\n')
-            elif event.key == pygame.locals.K_ESCAPE:
-              return
-            pygame.event.clear(pygame.locals.KEYDOWN)
+      while True:#running:
+        self.tcp_sock.sendall(f"u{self.my_pos[0]},{self.my_pos[1]}|".encode())
     finally:
-      self.sock.send(b'd\n')
-      self.sock.close()
-      print("Socket closed")
+      self.tcp_sock.send(b'd|')
+      self.tcp_sock.shutdown(socket.SHUT_RDWR)
+      self.tcp_sock.close()
+      print("TCP socket closed")
+
+  def decode_positions(self, data):
+    players_list = data.split('|')
+    for player in players_list:
+      player_data = player.split('+')
+      player_id = player_data[0]
+      player_pos = player_data[1].split(',')
+      self.players[player_id] = player_pos
+
+  def run_udp(self):
+    epoll = select.epoll()
+    epoll.register(self.udp_socket.fileno(), select.EPOLLIN)
+    try:
+      while True:#running:
+        events = epoll.poll()
+        for fileno, event in events:
+            if event & select.EPOLLIN:
+              data = self.udp_socket.recv(256)
+              self.decode_positions(data.encode())
+            elif event & select.EPOLLHUP:
+              epoll.unregister(fileno)
+
+        self.lock.acquire()
+        for id, pos in self.players.items():
+          print(f"Player {id} pos: {pos}")
+        self.lock.release()
+
+    finally:
+      epoll.unregister(self.udp_socket.fileno())
+      epoll.close()
+      self.udp_socket.close()
+      print("UDP server closed")
