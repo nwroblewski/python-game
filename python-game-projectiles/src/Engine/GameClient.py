@@ -58,7 +58,7 @@ class GameClient():
       print("TCP socket closed")
 
   def decode_positions(self, data):
-    players_list = data.split('|')
+    players_list = data.split('|')[0:-1]
     for player in players_list:
       player_data = player.split('+')
       player_id = player_data[0]
@@ -74,7 +74,7 @@ class GameClient():
         for fileno, event in events:
             if event & select.EPOLLIN:
               data = self.udp_socket.recv(256)
-              self.decode_positions(data.encode())
+              self.decode_positions(data.decode())
             elif event & select.EPOLLHUP:
               epoll.unregister(fileno)
 
