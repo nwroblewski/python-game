@@ -21,8 +21,8 @@ def start_single(levelGenerator):
 def start_multi():
     if 'game' not in globals():
         levelGenerator.load(1)
-        game = GameClient(entities, window, bg)
-        game.add_player(player)
+        game = GameClient()
+        #game.add_player(player)
     game.run()
 
 def start_server():
