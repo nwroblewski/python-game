@@ -60,7 +60,7 @@ if __name__ == "__main__":
     pygame.display.set_caption("Fortnite")
     platforms = pygame.sprite.Group()
     player = Player((settings.TILE_SIZE, settings.WINDOW_HEIGHT - settings.TILE_SIZE))
-    enemies = [Enemy((3500, 70))]
+    enemies = [Enemy((3500, 70)), Enemy((250, 70))]
     entities = CameraLayeredUpdates(player)
     levelGenerator = LevelGenerator(platforms, entities)
 

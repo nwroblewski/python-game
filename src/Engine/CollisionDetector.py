@@ -73,6 +73,10 @@ class CollisionDetector:
     def dmg_collider(self, enemy, player):
         if pygame.sprite.collide_rect(enemy, player):
             player.stats["health"] -= 0.9
-
+        for projectile in player.projectiles:
+            print(projectile.x)
+            if pygame.sprite.collide_rect(projectile, enemy):
+                enemy.stats["health"] -= 50
+                print('tets')
     # def collide_projectile(self,enemy,player):
     #     for projectile in player.projectiles:

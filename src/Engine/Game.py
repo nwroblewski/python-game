@@ -20,7 +20,7 @@ class Game:
         self.client.run()
 
     def run(self):
-        while True:
+        while self.player.is_alive():
             for e in pygame.event.get():
                 if e.type == QUIT:
                     self.client.tcp_sock.send(b'd|')
@@ -41,11 +41,12 @@ class Game:
             self.clock.tick(settings.FPS)
             #print(str(self.player.rect) + ' ' + str(self.player.vel))
 
+        self.player.stats["health"] = 100
     def update_projectiles(self):
         for projectile in self.player.projectiles:
             if abs(projectile.x - self.player.win_x) > 800:
                 self.player.projectiles.pop(self.player.projectiles.index(projectile))
-            projectile.draw(self.window)
+            self.window.blit(projectile.image, (projectile.x, projectile.y))
             projectile.update()
 
     def draw_players(self):

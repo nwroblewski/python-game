@@ -1,6 +1,7 @@
 import socket
 import select
 import sys
+import pickle
 from src.Assets import settings
 import pygame
 import pygame.locals
@@ -9,8 +10,9 @@ from threading import Lock, Thread, active_count
 #global running
 
 class Server(object):
-  def __init__(self, entities, collisionDetector, address = '127.0.0.1', tcp_port=8080, udp_port=9090):
+  def __init__(self, entities, collisionDetector, enemies, address = '127.0.0.1', tcp_port=8080, udp_port=9090):
     self.lock = Lock()
+    self.enemies = []
     self.init_tcp_server(address, tcp_port)
     self.init_udp_server(address, udp_port)
     self.players = {}   # fileno (player_id) -> pos (2-length tuple)
@@ -124,6 +126,7 @@ class Server(object):
             if event & select.EPOLLOUT:
               response = self.encode_positions()
               self.udp_socket.sendto(response, ('127.0.0.1', 9090))
+              # self.udp_socket.sendto(pickle.dumps(self.enemies), ('127.0.0.1', 9090))
             elif event & select.EPOLLHUP:
               epoll.unregister(fileno)
 
