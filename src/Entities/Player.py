@@ -2,7 +2,7 @@ import pygame
 from src.Entities.entity import Entity
 from src.Assets import settings
 from pygame import *
-from src.Engine.Projectile import Projectile
+from src.Entities.Projectile import Projectile
 from src.Entities.platform import NextLevelPlatform
 
 
@@ -86,9 +86,9 @@ class Player(Entity):
         if attack:
             if len(self.projectiles) < 1:
                 if self.direction == "facing_left":
-                    self.projectiles.append(Projectile(round(self.win_x) - 85, self.rect.top + 5, 20, -1))
+                    self.projectiles.append(Projectile((round(self.rect.x) - 85, self.rect.top + 5), -1))
                 else:
-                    self.projectiles.append(Projectile(round(self.win_x) + 15, self.rect.top + 5, 20, 1))
+                    self.projectiles.append(Projectile((round(self.rect.x) + 15, self.rect.top + 5), 1))
         if space or up:
             if self.onGround:
                 self.vel.y = -self.jump_strength
