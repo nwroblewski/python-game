@@ -87,6 +87,6 @@ class Enemy(Entity):
         if not self.on_ground:
             self.vel.y += settings.PLAYER_GRAVITY
             if self.vel.y > settings.MAX_FALLING_SPEED: self.vel.y = settings.MAX_FALLING_SPEED
-            y = self.pos[1]
-            y += self.vel.y
-            self.pos = (50, y)
+
+    def is_alive(self):
+        return self.stats["health"] > 0
