@@ -1,24 +1,25 @@
 import pygame
 from src.Assets import settings
+from src.Entities.entity import Entity
 
-class Projectile:
 
-    # TODO add fancy projectile animation here
-    def __init__(self, x, y, radius, direction):
-        self.x = x
-        self.y = y
-        self.radius = radius
+class Projectile(Entity):
+
+    def __init__(self, pos, direction, *groups):
         self.direction = direction
-        self.velocity = 7 * direction
         self.init_images()
+        super().__init__(self.sprite, 0, 0, pos)
+        self.vel = pygame.Vector2((0, 0))
+        self.speed = 7
+        self.direction = direction
 
     def init_images(self):
         if self.direction == -1:
-            self.image = pygame.image.load(settings.SPRITES_PATH + 'projectile_left.png')
+            self.sprite = pygame.image.load(settings.SPRITES_PATH + 'projectile_left.png')
         else:
-            self.image = pygame.image.load(settings.SPRITES_PATH + 'projectile_right.png')
+            self.sprite = pygame.image.load(settings.SPRITES_PATH + 'projectile_right.png')
 
-        self.rect = self.image.get_rect()
+        rect = self.sprite.get_rect()
 
     def update(self):
-        self.x += self.velocity
+        self.vel.x = self.speed * self.direction
