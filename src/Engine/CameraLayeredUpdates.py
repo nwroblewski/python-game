@@ -3,7 +3,7 @@ from src.Assets import settings
 
 
 class CameraLayeredUpdates(pygame.sprite.LayeredUpdates):
-    def __init__(self, target, world_size):
+    def __init__(self, target, world_size=pygame.Rect(0, 0, settings.LEVEL_WIDTH, settings.LEVEL_HEIGHT)):
         super().__init__()
         self.target = target
         self.cam = pygame.Vector2(0, 0)

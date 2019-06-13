@@ -5,14 +5,15 @@ from pygame import *
 from src.Engine.Projectile import Projectile
 from src.Entities.platform import NextLevelPlatform
 
+
 class Player(Entity):
-    def __init__(self, platforms, pos, *groups):
+    def __init__(self, pos, *groups):
+        self.stats = {"health": settings.PLAYER_HEALTH}
         self.init_images()
         super().__init__(self.char, settings.PLAYER_WIDTH, settings.PLAYER_HEIGHT, pos)
         self.vel = pygame.Vector2((0, 0))
         self.onGround = False
         self.jump_strength = settings.PLAYER_JUMP_STRENGTH
-        self.platforms = platforms
         self.speed = settings.PLAYER_SPEED
         self.walk_count = 0
         self.direction = "facing_right"
@@ -65,7 +66,7 @@ class Player(Entity):
         elif direction == "facing_right":
             self.image = self.char_right
 
-    def update(self):
+    def update(self, mv=None):
         pressed = pygame.key.get_pressed()
         up = pressed[K_UP]
         left = pressed[K_LEFT]
@@ -73,8 +74,16 @@ class Player(Entity):
         space = pressed[K_SPACE]
         attack = pressed[K_q]
 
+        # server moving
+        if mv is not None:
+            if mv == 'u':
+                up = True
+            elif mv == 'l':
+                left = True
+            elif mv == 'r':
+                right = True
+        # normal keyboard input
         if attack:
-
             if len(self.projectiles) < 1:
                 if self.direction == "facing_left":
                     self.projectiles.append(Projectile(round(self.win_x) - 20, self.rect.top - 10, 20, -1))
@@ -102,3 +111,4 @@ class Player(Entity):
 
     def update_relative_position(self, x):
         self.win_x = x
+
