@@ -32,7 +32,7 @@ class Game:
             self.player.update_relative_position(self.player.rect.right + self.entities.cam.x)
             self.collisionDetector.update()
             self.window.blit(self.bg, (0, 0))
-            self.update_projectiles()
+            self.draw_projectiles()
             self.entities.draw(self.window)
             self.draw_enemies()
             self.draw_players()
@@ -42,12 +42,13 @@ class Game:
             #print(str(self.player.rect) + ' ' + str(self.player.vel))
 
         self.player.stats["health"] = 100
-    def update_projectiles(self):
+
+    def draw_projectiles(self):
         for projectile in self.player.projectiles:
-            if abs(projectile.x - self.player.win_x) > 800:
+            if abs(projectile.rect.x - self.player.rect.x) > 800:
                 self.player.projectiles.pop(self.player.projectiles.index(projectile))
-            self.window.blit(projectile.image, (projectile.x, projectile.y))
             projectile.update()
+            self.window.blit(projectile.image, (projectile.rect.x + self.entities.cam.x, projectile.rect.y))
 
     def draw_players(self):
         # print("PLAYERS:")
@@ -58,9 +59,10 @@ class Game:
 
     def draw_enemies(self):
         for enemy in self.collisionDetector.enemies:
-            enemy.update()
-            self.window.blit(enemy.image, (enemy.rect.x + self.entities.cam.x, enemy.rect.y))
-            pygame.draw.rect(self.window, (255, 0, 0), (enemy.rect.x + self.entities.cam.x, enemy.rect.y + 10,
+            if enemy.is_alive():
+                enemy.update()
+                self.window.blit(enemy.image, (enemy.rect.x + self.entities.cam.x, enemy.rect.y))
+                pygame.draw.rect(self.window, (255, 0, 0), (enemy.rect.x + self.entities.cam.x, enemy.rect.y + 10,
                                                         enemy.stats["health"] // 4, 10))
 
     def draw_hud(self):
