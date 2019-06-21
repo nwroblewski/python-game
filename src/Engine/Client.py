@@ -7,81 +7,60 @@ import time
 from src.Assets import settings
 from threading import Thread, Lock, active_count
 
-def get_constants(prefix):
-    """Create a dictionary mapping socket module constants to their names."""
-    return dict( (getattr(socket, n), n)
-                 for n in dir(socket)
-                 if n.startswith(prefix)
-                 )
-
-#global running
-
 class Client():
-  def __init__(self, player, players, enemies, addr="127.0.0.1", tcp_port=8080, udp_port=9090):
-    self.lock = Lock()
+  def __init__(self, player, players, enemies, lock, addr="localhost", port=50000):
+    self.lock = lock
     self.enemies = enemies
     self.me = player
     self.players = players
-    self.init_tcp_server(addr, tcp_port)
-    self.init_udp_server(addr, udp_port)
+    self.init_connections(addr, port)
+    self.running = True
 
-  def init_tcp_server(self, address, port):
-    families = get_constants('AF_')
-    types = get_constants('SOCK_')
-    protocols = get_constants('IPPROTO_')
-    self.tcp_sock = socket.create_connection((address, port))
-    self.id = self.tcp_sock.recv(4).decode()
-    print("My player ID: " + self.id)
-    #self.tcp_sock.setblocking(0)
-    print ('Family  :', families[self.tcp_sock.family])
-    print ('Type    :', types[self.tcp_sock.type])
-    print ('Protocol:', protocols[self.tcp_sock.proto])
+  def init_connections(self, address, port):
+    self.sock_out = socket.create_connection((address, port))
+    self.id = self.sock_out.recv(4).decode()
 
-  def init_udp_server(self, address, port):
-    self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    self.udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    self.udp_socket.bind((address, port))
+    self.sock_in = socket.create_connection((address, port + 10))
 
   def run(self):
-    #running = True
-    tcp_thread = Thread(target=self.run_tcp)
-    udp_thread = Thread(target=self.run_udp)
-    tcp_thread.start()
-    udp_thread.start()
+    out_thread = Thread(target=self.run_out)
+    in_thread = Thread(target=self.run_in)
+    out_thread.start()
+    in_thread.start()
     print(f"{active_count()} threads are running")
 
-  def run_tcp(self):
+  def run_out(self):
     try:
-      while True:#running:
-        self.tcp_sock.sendall(f"u{self.me.rect.x},{self.me.rect.y}|".encode())
+      while self.running:
+        self.sock_out.sendall(f"u{self.me.rect.x},{self.me.rect.y}|".encode())
         time.sleep(0.01)
     finally:
-      self.tcp_sock.send(b'd|')
-      self.tcp_sock.shutdown(socket.SHUT_RDWR)
-      self.tcp_sock.close()
-      print("TCP socket closed")
+      self.sock_out.send(b'd|')
+      self.sock_out.shutdown(socket.SHUT_RDWR)
+      self.sock_out.close()
+      print("TCP socket (OUT) closed")
 
   def decode_positions(self, data):
     players_list = data.split('|')[0:-1]
 
+    self.lock.acquire()
+    self.players.clear()  # probably faster than searching for absent players, could receive delete info from server instead
+
     for player in players_list:
       player_data = player.split('+')
-      player_id = player_data[0]
-      player_pos = player_data[1].split(',')
-      self.players[player_id] = tuple([int(x) for x in player_pos])
+      if(len(player_data) == 2):
+        player_id = player_data[0]
+        player_pos = player_data[1].split(',')
+        self.players[player_id] = tuple([int(x) for x in player_pos])
+  
+    self.lock.release()
 
-  def run_udp(self):
-    epoll = select.epoll()
-    epoll.register(self.udp_socket.fileno(), select.EPOLLIN)
+  def run_in(self):
     try:
-      while True:#running:
-        events = epoll.poll()
-        for fileno, event in events:
-            if event & select.EPOLLIN:
-              data = self.udp_socket.recv(256)
-              self.decode_positions(data.decode())
-            elif event & select.EPOLLHUP:
-              epoll.unregister(fileno)
+      while self.running:
+        data = self.sock_in.recv(1024)
+        self.decode_positions(data.decode())
+        time.sleep(0.01)
 
         #self.lock.acquire()
         #for id, pos in self.players.items():
@@ -89,7 +68,7 @@ class Client():
         #self.lock.release()
 
     finally:
-      epoll.unregister(self.udp_socket.fileno())
-      epoll.close()
-      self.udp_socket.close()
-      print("UDP server closed")
+      self.sock_in.shutdown(socket.SHUT_RDWR)
+      self.sock_in.close()
+      print("TCP socket (IN) closed")
+

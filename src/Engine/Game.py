@@ -4,6 +4,7 @@ import pygame
 from pygame import *
 from src.Engine.Client import Client
 from src.Entities.Enemy import Enemy
+from threading import Lock
 
 class Game:
     def __init__(self, player, entities, collisionDetector, bg, window):
@@ -14,19 +15,23 @@ class Game:
         self.bg = bg
         self.collisionDetector = collisionDetector
         self.window = window
+        self.client = -1
+        self.lock = Lock()
 
     def start_communication(self):
-        self.client = Client(self.player, self.players, self.collisionDetector.enemies)
+        self.client = Client(self.player, self.players, self.collisionDetector.enemies, self.lock)
         self.client.run()
 
     def run(self):
         while self.player.is_alive():
             for e in pygame.event.get():
                 if e.type == QUIT:
-                    self.client.tcp_sock.send(b'd|')
+                    if self.client != -1:
+                        self.client.running = False
                     return
                 if e.type == KEYDOWN and e.key == K_ESCAPE:
-                    self.client.tcp_sock.send(b'd|')
+                    if self.client != -1:
+                        self.client.running = False
                     return
             self.entities.update()
             self.player.update_relative_position(self.player.rect.right + self.entities.cam.x)
@@ -39,7 +44,7 @@ class Game:
             self.draw_hud()
             pygame.display.update()
             self.clock.tick(settings.FPS)
-            #print(str(self.player.rect) + ' ' + str(self.player.vel))
+            print("MY POSITION: " + str([self.player.rect.x, self.player.rect.y]) + "\n")
 
         self.player.stats["health"] = 100
 
@@ -51,11 +56,14 @@ class Game:
             self.window.blit(projectile.image, (projectile.rect.x + self.entities.cam.x, projectile.rect.y))
 
     def draw_players(self):
-        # print("PLAYERS:")
+        print("OTHER PLAYERS:")
+        self.lock.acquire()
         for id, pos in self.players.items():
-            # print(f"{id} : {pos}")
+            print(f"Player {id} : {pos}")
             if(self.client.id != id):
                 self.window.blit(self.player.image, (pos[0] + self.entities.cam.x, pos[1]))
+        self.lock.release()
+        print()
 
     def draw_enemies(self):
         for enemy in self.collisionDetector.enemies:

@@ -73,7 +73,7 @@ class CollisionDetector:
                     enemy.rect.top = p.rect.bottom
 
     def dmg_collider(self, enemy, player):
-        if pygame.sprite.collide_rect(enemy, player):
+        if pygame.sprite.collide_rect(enemy, player) and enemy.is_alive():
             player.stats["health"] -= 0.9
         for projectile in player.projectiles:
             print(projectile.rect.x, enemy.rect.x)
