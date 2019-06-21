@@ -15,6 +15,7 @@ def start_single(levelGenerator):
         levelGenerator.load(1)
         game = Game(player, entities, collisionDetector, bg, window)
     game.run()
+    player.reset()
 
 def start_multi():
     if 'game' not in globals():
@@ -22,10 +23,11 @@ def start_multi():
         game = Game(player, entities, collisionDetector, bg, window)
         game.start_communication()
     game.run()
+    player.reset()
 
 def start_server():
     if 'server' not in globals():
-        server = Server(entities, collisionDetector)
+        server = Server(entities, collisionDetector, [])
     server.run()
 
 def multi_menu():
