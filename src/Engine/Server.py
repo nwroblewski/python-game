@@ -6,14 +6,15 @@ from src.Assets import settings
 import pygame
 import pygame.locals
 from threading import Lock, Thread, active_count
+from src.Entities.Player import Player
 
 class Server(object):
-  def __init__(self, entities, collisionDetector, enemies, address = 'localhost', port=50000):
+  def __init__(self, entities, collisionDetector, enemies, address = '', port=50000):
     self.lock = Lock()
     self.enemies = []
     self.sock_in = self.init_tcp_server(address, port)
     self.sock_out = self.init_tcp_server(address, port + 10)
-    self.players = {}   # fileno (player_id) -> pos (2-length tuple)
+    self.players = {}   # fileno (player_id) -> player object (not full)
     self.running = True
     
   def init_tcp_server(self, address, port):
@@ -40,7 +41,7 @@ class Server(object):
   def register_player(self, fileno):
     print(f"Registering player {fileno}")
     self.lock.acquire()
-    self.players[fileno] = settings.STARTING_POS
+    self.players[fileno] = -1
     self.lock.release()
     
   def unregister_player(self, fileno):
@@ -86,8 +87,16 @@ class Server(object):
               self.register_player(connection.fileno())
               connection.send(str(connection.fileno()).encode())
             elif event & select.EPOLLIN:
-              msg = connections[fileno].recv(256)
-              self.parse_msg(msg.decode(), fileno)
+              msg = connections[fileno].recv(512)
+              #self.parse_msg(msg.decode(), fileno)
+              try:
+                self.players[fileno] = pickle.loads(msg)
+              except:
+                print("error unpickling player")
+                epoll.unregister(fileno)
+                connections[fileno].close()
+                self.unregister_player(fileno)
+                del connections[fileno]
             elif event & select.EPOLLHUP:
               epoll.unregister(fileno)
               connections[fileno].close()
@@ -123,12 +132,14 @@ class Server(object):
               #connection.setblocking(0)
               epoll.register(connection.fileno(), select.EPOLLOUT)
               connections[connection.fileno()] = connection
-              #connection.send(str(connection.fileno()).encode())
+              connection.send(str(connection.fileno()).encode())
             elif event & select.EPOLLOUT:
-              response = self.encode_positions()
+              self.lock.acquire()
+              response = pickle.dumps(self.players) #self.encode_positions()
+              self.lock.release()
+              print("Wielkosc pickla z plejerow: " + str(len(response)))
               try:
-                connections[fileno].send(response)
-                #pickle.dumps(self.enemies)
+                connections[fileno].sendall(response)
               except BrokenPipeError:
                 print("Its ok, just did not delete connection on time")
                 epoll.unregister(fileno)
