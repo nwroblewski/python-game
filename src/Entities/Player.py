@@ -20,6 +20,16 @@ class Player(Entity):
         self.projectiles = []
         # self.char = pygame.image.load(settings.SPRITES_PATH + 'standing.png')
 
+    def reset(self):
+        self.rect.x = settings.STARTING_POS[0]
+        self.rect.y = settings.STARTING_POS[1]
+        self.stats["health"] = settings.PLAYER_HEALTH
+        self.vel = pygame.Vector2((0, 0))
+        self.onGround = False
+        self.walk_count = 0
+        self.direction = "facing_right"
+        self.projectiles = []
+
     def init_images(self):
         self.char = pygame.image.load(settings.SPRITES_PATH + 'char2/right_1.png')
         self.char_left = pygame.image.load(settings.SPRITES_PATH + 'char2/left_1.png')
@@ -74,14 +84,6 @@ class Player(Entity):
         space = pressed[K_SPACE]
         attack = pressed[K_q]
 
-        # server moving
-        if mv is not None:
-            if mv == 'u':
-                up = True
-            elif mv == 'l':
-                left = True
-            elif mv == 'r':
-                right = True
         # normal keyboard input
         if attack:
             if len(self.projectiles) < 1:
