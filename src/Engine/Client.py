@@ -2,13 +2,15 @@ import pygame
 import pygame.locals
 import socket
 import select
+import pickle
 import random
 import time
 from src.Assets import settings
+from src.Entities.Player import Player
 from threading import Thread, Lock, active_count
 
 class Client():
-  def __init__(self, player, players, enemies, lock, addr="localhost", port=50000):
+  def __init__(self, player, players, enemies, lock, addr='localhost', port=50000):
     self.lock = lock
     self.enemies = enemies
     self.me = player
@@ -32,10 +34,11 @@ class Client():
   def run_out(self):
     try:
       while self.running:
-        self.sock_out.sendall(f"u{self.me.rect.x},{self.me.rect.y}|".encode())
+        #self.sock_out.sendall(f"u{self.me.rect.x},{self.me.rect.y}|".encode())
+        print("Wielkosc dumpsa: " + str(len(pickle.dumps(self.me))))
+        self.sock_out.sendall(pickle.dumps(self.me))
         time.sleep(0.01)
     finally:
-      self.sock_out.send(b'd|')
       self.sock_out.shutdown(socket.SHUT_RDWR)
       self.sock_out.close()
       print("TCP socket (OUT) closed")
@@ -58,8 +61,17 @@ class Client():
   def run_in(self):
     try:
       while self.running:
-        data = self.sock_in.recv(1024)
-        self.decode_positions(data.decode())
+        data = self.sock_in.recv(2048)
+        #self.decode_positions(data.decode())
+        try:
+          self.players = pickle.loads(data)
+          print('MY POS FROM SERVER:')
+          try:
+            print(self.players[self.id])
+          except KeyError:
+            print(f"Missing key {self.id} in players!?!?!?!??!?!?")
+        except pickle.UnpicklingError:
+          print("ERROR UNPICKLING")
         time.sleep(0.01)
 
         #self.lock.acquire()
