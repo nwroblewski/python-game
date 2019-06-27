@@ -20,6 +20,13 @@ class Player(Entity):
         self.projectiles = []
         # self.char = pygame.image.load(settings.SPRITES_PATH + 'standing.png')
 
+    def __str__(self):
+        return "Player object with rect: " + str(self.rect)
+
+    def __getstate__(self):
+        pickleable_dict = dict((k, v) for k, v in self.__dict__.items() if k in ['rect', 'stats','projectiles','walk_count','direction'])
+        return pickleable_dict
+
     def reset(self):
         self.rect.x = settings.STARTING_POS[0]
         self.rect.y = settings.STARTING_POS[1]
