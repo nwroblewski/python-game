@@ -21,5 +21,9 @@ class Projectile(Entity):
 
         rect = self.sprite.get_rect()
 
+    def __getstate__(self):
+        pickleable_dict = dict((k, v) for k, v in self.__dict__.items() if k in ['direction', 'rect'])
+        return pickleable_dict
+
     def update(self):
         self.vel.x = self.speed * self.direction
