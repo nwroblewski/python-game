@@ -7,8 +7,8 @@ class LevelGenerator:
     def __init__(self, platforms, entities):
         self.platforms = platforms
         self.entities = entities
-        self.tiles = [pygame.image.load(settings.SPRITES_PATH + 'tile1.png'),
-                pygame.image.load(settings.SPRITES_PATH + 'tile2.png'),
+        self.tiles = [pygame.image.load(settings.SPRITES_PATH + 'tile3.png'),
+                pygame.image.load(settings.SPRITES_PATH + 'tile3.png'),
                 pygame.image.load(settings.SPRITES_PATH + 'tileN.png'),
                 pygame.image.load(settings.SPRITES_PATH + 'tileG.png')]
 

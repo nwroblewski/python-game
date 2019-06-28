@@ -10,6 +10,9 @@ from src.World.LevelGenerator import LevelGenerator
 from src.Engine.CollisionDetector import CollisionDetector
 from src.Engine.Server import Server
 from src.Entities.Enemy import Enemy
+from src.Entities.BigEnemy import BigEnemy
+
+
 def start_single(levelGenerator):
     if 'game' not in globals():
         levelGenerator.load(1)
@@ -44,6 +47,7 @@ def server_menu():
 
 def main_background():
     window.blit(bg, (0, 0))
+    # pass
 
 def create_menus():
     m = multi_menu()
@@ -62,7 +66,7 @@ if __name__ == "__main__":
     pygame.display.set_caption("Fortnite")
     platforms = pygame.sprite.Group()
     player = Player((settings.TILE_SIZE, settings.WINDOW_HEIGHT - settings.TILE_SIZE))
-    enemies = [Enemy((3500, 70)), Enemy((250, 70))]
+    enemies = [Enemy((3500, 70)), Enemy((250, 70)), BigEnemy((3700, 150))]
     entities = CameraLayeredUpdates(player)
     levelGenerator = LevelGenerator(platforms, entities)
 
@@ -70,7 +74,7 @@ if __name__ == "__main__":
 
     bg = pygame.image.load(settings.SPRITES_PATH + "bg.jpg")
     bg = pygame.transform.scale(bg, (settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT))
-
+    bg.fill((58, 64, 65))
     collisionDetector = CollisionDetector(platforms, entities, levelGenerator, enemies)
     collisionDetector.add_player(player)
 

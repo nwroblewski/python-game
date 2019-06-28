@@ -83,8 +83,11 @@ class Player(Entity):
         right = pressed[K_RIGHT]
         space = pressed[K_SPACE]
         attack = pressed[K_q]
+        heal = pressed[K_h]
 
         # normal keyboard input
+        if heal:
+            self.stats["health"] += 20
         if attack:
             if len(self.projectiles) < 1:
                 if self.direction == "facing_left":

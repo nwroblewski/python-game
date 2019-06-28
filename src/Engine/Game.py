@@ -5,7 +5,7 @@ from pygame import *
 from src.Engine.Client import Client
 from src.Entities.Enemy import Enemy
 from threading import Lock
-
+from src.Entities.BigEnemy import BigEnemy
 class Game:
     def __init__(self, player, entities, collisionDetector, bg, window):
         self.clock = pygame.time.Clock()
@@ -54,25 +54,36 @@ class Game:
                 self.player.projectiles.pop(self.player.projectiles.index(projectile))
             projectile.update()
             self.window.blit(projectile.image, (projectile.rect.x + self.entities.cam.x, projectile.rect.y))
+        for enemy in self.collisionDetector.enemies:
+            if isinstance(enemy, BigEnemy):
+                for projectile in enemy.projectiles:
+                    if abs(projectile.rect.x - enemy.rect.x) > 1500:
+                        enemy.projectiles.pop(enemy.projectiles.index(projectile))
+                    projectile.update()
+                    self.window.blit(projectile.image, (projectile.rect.x + self.entities.cam.x, projectile.rect.y))
 
     def draw_players(self):
-        print("OTHER PLAYERS:")
+        # print("OTHER PLAYERS:")
         self.lock.acquire()
         for id, pos in self.players.items():
-            print(f"Player {id} : {pos}")
+            # print(f"Player {id} : {pos}")
             if(self.client.id != id):
                 self.window.blit(self.player.image, (pos[0] + self.entities.cam.x, pos[1]))
         self.lock.release()
-        print()
+        # print()
 
     def draw_enemies(self):
         for enemy in self.collisionDetector.enemies:
-            if enemy.is_alive():
-                enemy.update()
+            if enemy.is_alive() and not isinstance(enemy, BigEnemy):
+                enemy.update(self.player)
                 self.window.blit(enemy.image, (enemy.rect.x + self.entities.cam.x, enemy.rect.y))
                 pygame.draw.rect(self.window, (255, 0, 0), (enemy.rect.x + self.entities.cam.x, enemy.rect.y + 10,
                                                         enemy.stats["health"] // 4, 10))
-
+            elif enemy.is_alive() and isinstance(enemy, BigEnemy):
+                enemy.update(self.player)
+                self.window.blit(enemy.image, (enemy.rect.x + self.entities.cam.x, enemy.rect.y))
+                pygame.draw.rect(self.window, (255, 0, 0), (enemy.rect.x + self.entities.cam.x, enemy.rect.y + 10,
+                                                            enemy.stats["health"] // 250, 10))
     def draw_hud(self):
-        pygame.draw.rect(self.window, (255, 0, 0), (30, 50, self.player.stats["health"] * 2, 18))
+        pygame.draw.rect(self.window, (255, 0, 0), (40, 20, self.player.stats["health"] * 2, 18))
 

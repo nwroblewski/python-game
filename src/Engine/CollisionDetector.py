@@ -3,7 +3,7 @@ from src.Entities.entity import Entity
 from src.Assets import settings
 from pygame import *
 from src.Entities.platform import NextLevelPlatform, GameOverPlatform
-
+from src.Entities.BigEnemy import BigEnemy
 
 class CollisionDetector:
     def __init__(self, platforms, entities, levelGenerator, enemies, *groups):
@@ -21,11 +21,19 @@ class CollisionDetector:
 
     def update(self):
         for enemy in self.enemies:
-            enemy.rect.left += enemy.vel.x
-            self.collide_enemy(enemy.vel.x, 0, enemy)
-            enemy.rect.top += enemy.vel.y
-            enemy.onGround = False
-            self.collide_enemy(0, enemy.vel.y, enemy)
+            if enemy is not isinstance(enemy, BigEnemy):
+                enemy.rect.left += enemy.vel.x
+                self.collide_enemy(enemy.vel.x, 0, enemy)
+                enemy.rect.top += enemy.vel.y
+                enemy.onGround = False
+                self.collide_enemy(0, enemy.vel.y, enemy)
+            if isinstance(enemy, BigEnemy):
+                print('omg')
+                enemy.rect.left += enemy.vel.x
+                enemy.rect.top += enemy.vel.y
+                for projectile in enemy.projectiles:
+                    projectile.rect.left += projectile.vel.x
+                self.collide_enemy(0, enemy.vel.y, enemy)
         for player in self.players:
             player.rect.left += player.vel.x
             self.collide(player.vel.x, 0, player)
@@ -36,7 +44,7 @@ class CollisionDetector:
                 projectile.rect.left += projectile.vel.x
             self.dmg_collider(self.enemies[0], player)
             self.dmg_collider(self.enemies[1], player)
-
+            self.dmg_collider(self.enemies[2], player)
 
     def collide(self, xvel, yvel, player):
         for p in self.platforms:
@@ -73,11 +81,14 @@ class CollisionDetector:
                     enemy.rect.top = p.rect.bottom
 
     def dmg_collider(self, enemy, player):
-        if pygame.sprite.collide_rect(enemy, player) and enemy.is_alive():
+        if pygame.sprite.collide_rect(enemy, player) and enemy.is_alive() and enemy is not isinstance(enemy, BigEnemy):
             player.stats["health"] -= 0.9
+        if pygame.sprite.collide_rect(enemy, player) and enemy.is_alive() and isinstance(enemy, BigEnemy):
+            player.stats["health"] -= 4
         for projectile in player.projectiles:
-            print(projectile.rect.x, enemy.rect.x)
             if pygame.sprite.collide_rect(projectile, enemy):
                 enemy.stats["health"] -= 30
-    # def collide_projectile(self,enemy,player):
-    #     for projectile in player.projectiles:
+        if isinstance(enemy, BigEnemy):
+            for projectile in enemy.projectiles:
+                if pygame.sprite.collide_rect(projectile, player):
+                    player.stats["health"] -= 10

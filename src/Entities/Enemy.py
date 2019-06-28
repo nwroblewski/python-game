@@ -66,7 +66,7 @@ class Enemy(Entity):
         rect = self.char.get_rect()
 
     def anim(self):
-        self.walk_count %= 36
+        self.walk_count %= 39
         if self.direction == settings.LEFT:
             self.image = self.walk_left[self.walk_count // 3]
             self.walk_count += 1
@@ -78,15 +78,19 @@ class Enemy(Entity):
         # elif self.facing == settings.RIGHT:
         #     self.image = self.char_right
 
-    # TODO movement here
-    def update(self):
-        self.vel.x = -self.speed
-        self.direction = settings.LEFT
+    def update(self, player):
+        if player.rect.x > self.rect.x:
+            self.direction = settings.RIGHT
+            self.vel.x = self.speed
+        else:
+            self.vel.x = -self.speed
+            self.direction = settings.LEFT
         self.anim()
 
         if not self.on_ground:
             self.vel.y += settings.PLAYER_GRAVITY
-            if self.vel.y > settings.MAX_FALLING_SPEED: self.vel.y = settings.MAX_FALLING_SPEED
+            if self.vel.y > settings.MAX_FALLING_SPEED:
+                self.vel.y = settings.MAX_FALLING_SPEED
 
     def is_alive(self):
         return self.stats["health"] > 0
