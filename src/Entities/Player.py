@@ -18,6 +18,7 @@ class Player(Entity):
         self.walk_count = 0
         self.direction = "facing_right"
         self.projectiles = []
+        self.attack_counter = 0
         # self.char = pygame.image.load(settings.SPRITES_PATH + 'standing.png')
 
     def reset(self):
@@ -29,6 +30,8 @@ class Player(Entity):
         self.walk_count = 0
         self.direction = "facing_right"
         self.projectiles = []
+        self.attack_counter = 0
+        self.can_attack = True
 
     def init_images(self):
         self.char = pygame.image.load(settings.SPRITES_PATH + 'char2/right_1.png')
@@ -77,6 +80,7 @@ class Player(Entity):
             self.image = self.char_right
 
     def update(self, mv=None):
+        self.attack_counter %= 40
         pressed = pygame.key.get_pressed()
         up = pressed[K_UP]
         left = pressed[K_LEFT]
@@ -84,14 +88,16 @@ class Player(Entity):
         space = pressed[K_SPACE]
         attack = pressed[K_q]
         heal = pressed[K_h]
-
+        if self.attack_counter == 0:
+            self.can_attack = True
         # normal keyboard input
         if heal:
             self.stats["health"] += 20
             if self.stats['health'] > 120:
                 self.stats['health'] = 120
-        if attack:
-            if len(self.projectiles) < 1:
+        if attack and self.can_attack:
+            self.can_attack = False
+            if len(self.projectiles) < 3:
                 if self.direction == "facing_left":
                     self.projectiles.append(Projectile((round(self.rect.x) - 85, self.rect.top + 5), -1))
                 else:
@@ -115,6 +121,7 @@ class Player(Entity):
         if not (left or right):
             self.vel.x = 0
             self.anim(self.direction)
+        self.attack_counter += 1
 
     def update_relative_position(self, x):
         self.win_x = x
