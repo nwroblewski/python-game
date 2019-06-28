@@ -8,7 +8,7 @@ from src.Entities.platform import NextLevelPlatform
 
 class Player(Entity):
     def __init__(self, pos, *groups):
-        self.stats = {"health": settings.PLAYER_HEALTH}
+        self.stats = {"health": settings.PLAYER_HEALTH, "mp": 200, "str": 10, "def": 10}
         self.init_images()
         super().__init__(self.char, settings.PLAYER_WIDTH, settings.PLAYER_HEIGHT, pos)
         self.vel = pygame.Vector2((0, 0))
@@ -88,6 +88,8 @@ class Player(Entity):
         # normal keyboard input
         if heal:
             self.stats["health"] += 20
+            if self.stats['health'] > 120:
+                self.stats['health'] = 120
         if attack:
             if len(self.projectiles) < 1:
                 if self.direction == "facing_left":

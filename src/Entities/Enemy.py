@@ -12,7 +12,7 @@ class Enemy(Entity):
         self.vel = pygame.Vector2((0, 0))
         self.speed = 2
         self.direction = settings.LEFT
-        self.stats = {"health": 200, "strength": 20}
+        self.stats = {"health": 200, "str": 25, "def": 15}
         self.is_attacking = False
         self.facing = settings.LEFT
         self.on_ground = False

@@ -14,7 +14,7 @@ class BigEnemy(Entity):
         self.vel = pygame.Vector2((0, 0))
         self.speed = 4
         self.direction = settings.LEFT
-        self.stats = {"health": 20000, "strength": 20}
+        self.stats = {"health": 20000, "str": 20, "mp": 100, "def": 80}
         self.projectiles = []
         self.attack_counter = 0
 

@@ -82,13 +82,15 @@ class CollisionDetector:
 
     def dmg_collider(self, enemy, player):
         if pygame.sprite.collide_rect(enemy, player) and enemy.is_alive() and enemy is not isinstance(enemy, BigEnemy):
-            player.stats["health"] -= 0.9
+            player.stats["health"] -= (enemy.stats["str"] - player.stats["def"])
         if pygame.sprite.collide_rect(enemy, player) and enemy.is_alive() and isinstance(enemy, BigEnemy):
-            player.stats["health"] -= 4
+            player.stats["health"] -= (enemy.stats["str"] - player.stats["def"])
+            if player.stats["str"] - enemy.stats("def") > 0:
+                enemy.stats["health"] -= (player.stats["str"] - enemy.stats("def"))
         for projectile in player.projectiles:
             if pygame.sprite.collide_rect(projectile, enemy):
-                enemy.stats["health"] -= 30
+                enemy.stats["health"] -= (player.stats["mp"] - enemy.stats["def"])
         if isinstance(enemy, BigEnemy):
             for projectile in enemy.projectiles:
                 if pygame.sprite.collide_rect(projectile, player):
-                    player.stats["health"] -= 10
+                    player.stats["health"] -= (enemy.stats["mp"] - player.stats["def"])
